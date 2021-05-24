@@ -403,8 +403,9 @@ def degree_dis(dis1,dis2,name,i,epsilon):
     y1 = dis1
     y2 = dis2
     plt.figure(figsize=(20, 10))
-    plot1 = plt.plot(x, y1, 'b', label='original distribution')
+
     plot2 = plt.plot(x, y2, 'r', label='DP distribution')
+    plot1 = plt.plot(x, y1, 'b', label='original distribution')
     original_avg = np.mean(y1)
     DP_avg = np.mean(y2)
     plt.xlabel('x')
