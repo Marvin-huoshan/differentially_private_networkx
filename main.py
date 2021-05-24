@@ -7,7 +7,7 @@ from scipy.optimize import root
 import pandas as pd
 import os
 import math
-
+from multiprocessing import Pool,Process
 
 def func1(G,name,file):
     '''
@@ -423,7 +423,6 @@ def degree_dis(dis1,dis2,name,i,epsilon):
         print(savepath + ' 目录已存在')
     plt.savefig(savepath + name + '-' + str(epsilon) + '-' +str(i) + '.png')
 
-
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     G_face = nx.read_edgelist('facebook_combined.txt')
@@ -465,8 +464,14 @@ if __name__ == '__main__':
     cond_2_list = [38.68998649, 62.41025877, 96.68411931, 133.43065935]
     dblp_2 = 26.52523083
     dblp_2_list = [26.52523083, 46.87959975, 76.29095187, 108.80258168, 143.90645413, 180.25930185, 216.53189205]
-    print('face:')
-    Laplace(G_face_connect,facebook_2_list,0.5,'face')
+    p = Pool(42)
+    for i in np.arange(0.5,5.5,0.5):
+        p.apply(Laplace,args=(G_face_connect,facebook_2_list,i,'face'))
+        p.apply(Laplace,args=(G_Email_connect, Email_2_list, i, 'Email'))
+        p.apply(Laplace,args=(G_cond_connect, cond_2_list, i, 'cond'))
+        p.apply(Laplace,args=(G_dblp_connect, dblp_2_list, i, 'dblp'))
+    p.close()
+    p.join()
     '''print('Email:')
     Laplace(G_Email_connect,Email_2_list,0.5)
     print('cond:')
