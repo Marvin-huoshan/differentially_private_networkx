@@ -6,10 +6,119 @@ import numpy as np
 from scipy.optimize import root
 import pandas as pd
 import os
+import math
+
+
+def func1(G,name,file):
+    '''
+    使用截断机制,统计度以及其出现的频次
+    :param G:
+    :param name:
+    :param file:
+    :return:
+    '''
+    #读取第一列的值
+    df_y = pd.read_excel(file,usecols=[0])
+    df_list = df_y.values.tolist()
+    df_list = df_list[:math.ceil(len(df_list)/2)]
+    #度数从大到小出现的次数
+    cont_list = [a for b in df_list for a in b]
+    df_x = [i for i in range(len(df_list))]
+    x = df_x[:]
+    y = cont_list[:]
+    f12 = np.polyfit(x, y, 12)
+    p12 = np.poly1d(f12)
+    yvals = p12(x)  # 拟合曲线的y值
+    p12_1 = np.polyder(p12, 1)#一阶导数
+    p12_2 = np.polyder(p12, 2)#二阶导数
+    yvals12 = p12_1(x)
+    yvals12_2 = p12_2(x)
+    plt.figure(figsize=(20,10))
+    ax1 = plt.subplot(121)
+    plot1 = plt.plot(x, y, 's', label='original values')
+    plot2 = plt.plot(x, yvals, 'r', label='polyfit values')
+    plt.gca().invert_xaxis()
+    ax1.set_title('polyfitting of ' + name)
+    ax1.set_xlabel('degree')
+    ax1.set_ylabel('Frequency')
+    ax1.legend(fontsize='large', loc='upper right')
+    ax1.invert_xaxis()
+    ax2 = plt.subplot(122)
+    plot9 = plt.plot(x, yvals12,'y',label = 'polyder1 values')
+    plot8 = plt.plot(x, yvals12_2, 'r', label='polyder2 values')
+    plt.gca().invert_xaxis()
+    ax2.set_title('polyder1')
+    ax2.set_xlabel('x')
+    ax2.set_ylabel('y')
+    ax2.legend(fontsize='large', loc='upper right')
+    ax2.invert_xaxis()
+    plt.legend(loc=4)  # 指定legend的位置右下角
+    savepath = 'pict'
+    isExists = os.path.exists(savepath)
+    if not isExists:
+        # 如果不存在则创建目录
+        # 创建目录操作函数
+        os.makedirs(savepath)
+        print(savepath + ' 创建成功')
+    else:
+        # 如果目录存在则不创建，并提示目录已存在
+        print(savepath + ' 目录已存在')
+    plt.savefig(savepath + '/' + name + '_set.png')
+    plt.show()
+
+def point(a,b,file):
+    '''
+    求出二阶导数的第一个零点作为拐点
+    :param G:
+    :param file:
+    :return:
+    '''
+    df_y = pd.read_excel(file, usecols=[0])
+    df_list = df_y.values.tolist()
+    df_list = df_list[:math.ceil(len(df_list) / 2)]
+    # 度数从大到小出现的次数
+    cont_list = [a for b in df_list for a in b]
+    df_x = [i for i in range(len(df_list))]
+    x = df_x[:]
+    y = cont_list[:]
+    # 12次曲线拟合
+    f12 = np.polyfit(x, y, 12)
+    p12 = np.poly1d(f12)
+    yvals = p12(x)  # 拟合曲线的y值
+    p12_1 = np.polyder(p12, 1)  # 一阶导数
+    p12_2 = np.polyder(p12, 2)  #二阶导数
+    #biSection(a,b,1e-10,p12_2,p12)
+    solution = root(fun=p12_2,x0=[10])
+    print(solution.x[0])
+    print(p12(solution.x[0]))
+
+
+
+def biSection(a,b,threshold,f,F):
+    '''
+    二分法求函数零点
+    :param a:
+    :param b:
+    :param threshold:
+    :param f:
+    :return:
+    '''
+    iter=0
+    while a:
+        mid = a + abs(b-a)/2.0
+        if abs(f(mid)) < threshold:
+            return mid
+        if f(mid)*f(b) < 0:
+            a = mid
+        if f(a)*f(mid) < 0:
+            b=mid
+        iter+=1
+        print(str(iter)+ " a= "+str(a)+ ", b= "+str(b)+', F(a)= '+str(f(a))+', F(b)= '+str(f(b)))
+
 
 def func(G,name,file):
     '''
-    使用截断机制
+    使用截断机制,统计度以及其出现的频次
     :param G:
     :param name:
     :param file:
@@ -21,11 +130,12 @@ def func(G,name,file):
     #度数从大到小出现的次数
     cont_list = [a for b in df_list for a in b]
     #cont_list.reverse()
-    print(cont_list)
+    #Max = max(cont_list)
+    cont_list = [i for i in cont_list]
     df_x = pd.read_excel(file,usecols=[0])
     df_list = df_x.values.tolist()
     degree_list = [a for b in df_list for a in b]
-    max = degree_list[0]
+    #max = degree_list[0]
     #degree_list.reverse()
     print(degree_list)
     mid = degree_list[len(degree_list)//2]
@@ -41,81 +151,99 @@ def func(G,name,file):
     x = x[:index+1]
     y = y[:index+1]
     #y ='''
+    polyfit(x,y,name)
+
+def polyfit(x,y,name):
+    '''
+    使用曲线拟合
+    :param x:
+    :param y:
+    :return:
+    '''
     f10 = np.polyfit(x, y, 10)
-    #9次曲线拟合
-    f9 = np.polyfit(x, y, 9)
-    #8次曲线拟合
+    # 9次曲线拟合
+    f9 = np.polyfit(x, y, 12)
+    # 8次曲线拟合
     f8 = np.polyfit(x, y, 8)
-    #7次曲线拟合
+    # 7次曲线拟合
     f7 = np.polyfit(x, y, 7)
-    #6次曲线拟合
+    # 6次曲线拟合
     f6 = np.polyfit(x, y, 6)
     f5 = np.polyfit(x, y, 5)
-    #print('f1 is:', f1)
-    #得到拟合的多项式，按照阶数从高到低
-    #p10 = np.poly1d(f10)
+    # print('f1 is:', f1)
+    # 得到拟合的多项式，按照阶数从高到低
+    # p10 = np.poly1d(f10)
     p9 = np.poly1d(f9)
     p8 = np.poly1d(f8)
     p7 = np.poly1d(f7)
     p6 = np.poly1d(f6)
     p5 = np.poly1d(f5)
-    #print('p1 is :\n', p1)
+    # print('p1 is :\n', p1)
     yvals = p9(x)  # 拟合曲线的y值
-    #p10_1 = np.polyder(p10, 1)
-    p9_1 = np.polyder(p9, 1)#一阶导数
+    # p10_1 = np.polyder(p10, 1)
+    p9_1 = np.polyder(p9, 1)  # 一阶导数
     p8_1 = np.polyder(p8, 1)
     p7_1 = np.polyder(p7, 1)
     p6_1 = np.polyder(p6, 1)
     p5_1 = np.polyder(p5, 1)
-    #print('p2 is:\n', p2)
-    p1 = p9
-    p3 = np.polyder(p1,2)
-    #yvals10 = p10_1(x)
+    # print('p2 is:\n', p2)
+    p9_2 = np.polyder(p9_1, 1)
+    print('零点:', p9_2.r)
+    y3 = p9_2(x)
+    # yvals10 = p10_1(x)
     yvals9 = p9_1(x)
     yvals8 = p8_1(x)
     yvals7 = p7_1(x)
     yvals6 = p6_1(x)
     yvals5 = p5_1(x)
-    #yvals2 = p3(x)
+    # yvals2 = p3(x)
 
-    #print('yvals is :\n', yvals)
+    # print('yvals is :\n', yvals)
     # 绘图
-    plt.figure(figsize=(20,10))
-    ax1 = plt.subplot(121)
+    plt.figure(figsize=(20, 10))
+    ax1 = plt.subplot(131)
     plot1 = plt.plot(x, y, 's', label='original values')
     plot2 = plt.plot(x, yvals, 'r', label='polyfit values')
-    plt.gca().invert_xaxis()
+    # plt.gca().invert_xaxis()
     ax1.set_title('polyfitting of ' + name)
     ax1.set_xlabel('degree')
     ax1.set_ylabel('Frequency')
     ax1.legend(fontsize='large', loc='upper left')
-    ax2 = plt.subplot(122)
-    #plot10 = plt.plot(x,yvals10,'m',label='polyder10 values')
-    plot9 = plt.plot(x, yvals9,'y',label = 'polyder9 values')
-    plot8 = plt.plot(x, yvals8, 'r', label='polyder8 values')
-    plot7 = plt.plot(x, yvals7, 'b', label='polyder7 values')
-    plot6 = plt.plot(x, yvals6, 'g', label='polyder6 values')
-    plot5 = plt.plot(x, yvals5, 'c', label='polyder5 values')
-    plt.gca().invert_xaxis()
-    #plot3 = plt.plot(x, yvals2,'y',label = 'polyder2 values')
+    ax2 = plt.subplot(132)
+    # plot10 = plt.plot(x,yvals10,'m',label='polyder10 values')
+    plot9 = plt.plot(x, yvals9, 'y', label='polyder9_1 values')
+    plot8 = plt.plot(x, yvals8, 'r', label='polyder8_1 values')
+    plot7 = plt.plot(x, yvals7, 'b', label='polyder7_1 values')
+    # plot6 = plt.plot(x, yvals6, 'g', label='polyder6_1 values')
+    # plot5 = plt.plot(x, yvals5, 'c', label='polyder5_1 values')
+    # plt.gca().invert_xaxis()
+    # plot3 = plt.plot(x, yvals2,'y',label = 'polyder2 values')
     ax2.set_title('polyder1')
     ax2.set_xlabel('x')
     ax2.set_ylabel('y')
     ax2.legend(fontsize='large', loc='upper right')
-    my_x_ticks = np.arange(0, max, 100)
-    plt.xticks(my_x_ticks)
+    ax3 = plt.subplot(133)
+    plot8 = plt.plot(x, y3, 'r', label='polyder9_2 values')
+    # plt.gca().invert_xaxis()
+    ax3.set_title('polyder2')
+    ax3.set_xlabel('x')
+    ax3.set_ylabel('y')
+    ax3.legend(fontsize='large', loc='upper right')
+    # my_x_ticks = np.arange(0, max, 80)
+    # plt.xticks(my_x_ticks)
     plt.legend(loc=4)  # 指定legend的位置右下角
     p2 = p9_1
-    solution2 = root(fun=p3, x0=[1,2,3])
-    solution = root(fun=p2, x0=[1,30,50,75,85])
-    #list_2 = list[i for i in list(p3(solution.x))]
+    # solution2 = root(fun=p3, x0=[1,2,3])
+    solution = root(fun=p9_1, x0=[1])
+    print(solution)
+    # list_2 = list[i for i in list(p3(solution.x))]
     list_2 = []
 
-    for i in range(len(solution.x)):
+    '''for i in range(len(solution.x)):
         if p3(solution.x[i]) > 0:
             list_2.append([solution.x[i],p3(solution.x[i])])
-    sorted_list = sorted(list_2,key=lambda x:x[1],reverse=True)
-    print(sorted_list)
+    sorted_list = sorted(list_2, key=lambda x: x[1], reverse=True)
+    print(sorted_list)'''
     savepath = 'pict' + '/' + name
     isExists = os.path.exists(savepath)
     if not isExists:
@@ -128,7 +256,7 @@ def func(G,name,file):
         print(savepath + ' 目录已存在')
     plt.savefig(savepath + '.png')
     plt.show()
-    return p1(solution2.x[0])
+    # return p1(solution2.x[0])
 
 
 def degree_cout(G,name):
@@ -212,6 +340,90 @@ def connect_integers(G):
     G_face_connect = nx.convert_node_labels_to_integers(G_connect)
     return G_face_connect
 
+def part_degree(G,threshold):
+    '''
+    根据threhold将节点以及度列表进行切片,返回ID，degree，敏感度
+    :param G:
+    :param threshold:
+    :return:
+    '''
+    values = []
+    threshold.reverse()
+    dict1 = dict(sorted(nx.degree(G), key=lambda x: x[1], reverse=True))
+    key = list(dict1.keys())
+    value = list(dict1.values())
+    before = max(value)
+    num = 0
+    for i in threshold:
+        value_tmp = [i for i in filter(lambda x: before >= x > i,value)]
+        values.append(value_tmp)
+        before = i
+    before = 0
+    length = 0
+    keys = []
+    df = []
+    for i in values:
+        length += len(i)
+        key_tmp = key[before:length]
+        keys.append(key_tmp)
+        value1 = i[:]
+        value2 = value1[:]
+        value2.pop(0)
+        value1.pop()
+        dis = list(map(lambda x:x[0]-x[1],zip(value1,value2)))
+        dis_max = max(dis)
+        df.append(math.ceil(dis_max/2))
+        before = length
+    return keys,values,df
+
+def Laplace(G,threshold,epsilon,name):
+    '''
+    对value加入Laplace噪声
+    :param G: 
+    :param threshold: 
+    :return: 
+    '''
+    key,value,df = part_degree(G,threshold)
+    for i in range(len(df)):
+        L = df[i] / epsilon
+        value_noise = value[i][:]
+        noise = list(np.random.laplace(0, L, len(value_noise)))
+        value_noise = list(map(lambda x: x[0] + x[1], zip(value_noise, noise)))
+        value_noise = [round(i) for i in value_noise]
+        degree_dis(value[i][:],value_noise,name,i,epsilon)
+
+def degree_dis(dis1,dis2,name,i,epsilon):
+    '''
+    绘制加噪前后度分布的曲线，以及均值的变化
+    :param dis1:
+    :param dis2:
+    :return:
+    '''
+    x = list(range(len(dis1)))
+    y1 = dis1
+    y2 = dis2
+    plt.figure(figsize=(20, 10))
+    plot1 = plt.plot(x, y1, 'b', label='original distribution')
+    plot2 = plt.plot(x, y2, 'r', label='DP distribution')
+    original_avg = np.mean(y1)
+    DP_avg = np.mean(y2)
+    plt.xlabel('x')
+    plt.ylabel('degree')
+    plt.legend(loc='upper right',fontsize='large')  # 指定legend的位置右下角
+    plt.legend(['original_avg = ' + str(original_avg), 'DP_avg = ' + str(DP_avg)], loc='lower left')
+    savepath = 'pict' + '/' + name + '/'
+    isExists = os.path.exists(savepath)
+    if not isExists:
+        # 如果不存在则创建目录
+        # 创建目录操作函数
+        os.makedirs(savepath)
+        print(savepath + ' 创建成功')
+    else:
+        # 如果目录存在则不创建，并提示目录已存在
+        print(savepath + ' 目录已存在')
+    plt.savefig(savepath + name + '-' + str(epsilon) + '-' +str(i) + '.png')
+
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     G_face = nx.read_edgelist('facebook_combined.txt')
@@ -225,8 +437,45 @@ if __name__ == '__main__':
     #degree_cout(G_Email_connect, 'Email')
     #degree_cout(G_cond_connect,'cond')
     #degree_cout(G_dblp_connect,'dblp')
-    func(G_face_connect,'face','face-degree_cont.xlsx')
-    func(G_Email_connect,'Email','Email-degree_cont.xlsx')
-    func(G_cond_connect,'cond','cond-degree_cont.xlsx')
-    func(G_dblp_connect,'dblp','dblp-degree_cont.xlsx')
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    #func1(G_face_connect,'face','face-degree_cont.xlsx')
+    #func1(G_Email_connect,'Email','Email-degree_cont.xlsx')
+    #func1(G_cond_connect,'cond','cond-degree_cont.xlsx')
+    #func1(G_dblp_connect,'dblp','dblp-degree_cont.xlsx')
+    #func(G_face_connect,'face','face-degree_cont.xlsx')
+    #func(G_Email_connect, 'Email', 'Email-degree_cont.xlsx')
+    #func(G_cond_connect, 'cond', 'cond-degree_cont.xlsx')
+    #func(G_dblp_connect, 'dblp', 'dblp-degree_cont.xlsx')
+    '''
+    分别代表每个图的度频次在9-5阶函数拟合下，导数的零点
+    '''
+    cond_point = [271.5708,270.8707,269.6410,264.6168,253.0774]
+    dblp_point = [328.8590,326.8515,324.1340,319.1716,307.8591]
+    Email_poiny = [1334.8173,1327.9704,1313.9114,1290.8144,1244.8417]
+    face_point = [986.5730,985.5891,972.2303,959.8456,945.1950]
+    cond_set = 121.7190
+    Email_set = 1147.3100
+    face_set = 220.1523
+    dblp_set = 207.1581
+    #对度以及对应出现的次数进行拟合后，进行截断获得的二阶导数零点
+    facebook_2 = 136.97061775
+    facebook_2_list = [136.97061775, 206.96154335]
+    Email_2 = 118.76636075
+    Email_2_list = [118.76636075, 259.64012053, 442.38269369, 657.82585429]
+    cond_2 = 38.68998649
+    cond_2_list = [38.68998649, 62.41025877, 96.68411931, 133.43065935]
+    dblp_2 = 26.52523083
+    dblp_2_list = [26.52523083, 46.87959975, 76.29095187, 108.80258168, 143.90645413, 180.25930185, 216.53189205]
+    print('face:')
+    Laplace(G_face_connect,facebook_2_list,0.5,'face')
+    '''print('Email:')
+    Laplace(G_Email_connect,Email_2_list,0.5)
+    print('cond:')
+    Laplace(G_cond_connect,cond_2_list,0.5)
+    print('dblp:')
+    Laplace(G_dblp_connect,dblp_2_list,0.5)'''
+    #part_degree(G_face,facebook_2)
+    #point(0.5,15,'cond-degree_cont.xlsx')
+    #point(13,13.2,'dblp-degree_cont.xlsx')
+    #point(0.5,20,'Email-degree_cont.xlsx')
+    #point(0.5,15,'face-degree_cont.xlsx')
+
