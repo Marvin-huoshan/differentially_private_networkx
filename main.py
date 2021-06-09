@@ -456,15 +456,15 @@ if __name__ == '__main__':
     dblp_fre_2_list = [36.40478825,4.27936997e+01,5.28347889e+01,6.65825318e+01
                         ,8.31533309e+01,1.01546545e+02,1.20666296e+02
                         ,1.38770070e+02,1.7000e+02,1.74729408e+02,213.78199945]
-    Laplace(G_face_connect,face_fre_2_list,0.5,'face_1')
-    '''p = Pool(42)
+    #Laplace(G_face_connect,face_fre_2_list,0.5,'face_1')
+    p = Pool(42)
     for i in np.arange(0.5,5.5,0.5):
-        p.apply(Laplace,args=(G_face_connect,facebook_2_list,i,'face'))
-        p.apply(Laplace,args=(G_Email_connect, Email_2_list, i, 'Email'))
-        p.apply(Laplace,args=(G_cond_connect, cond_2_list, i, 'cond'))
-        p.apply(Laplace,args=(G_dblp_connect, dblp_2_list, i, 'dblp'))
+        p.apply(Laplace,args=(G_face_connect,face_fre_2_list,i,'face_1'))
+        p.apply(Laplace,args=(G_Email_connect, Email_fre_2_list, i, 'Email_1'))
+        p.apply(Laplace,args=(G_cond_connect, cond_fre_2_list, i, 'cond_1'))
+        p.apply(Laplace,args=(G_dblp_connect, dblp_fre_2_list, i, 'dblp_1'))
     p.close()
-    p.join()'''
+    p.join()
     '''print('Email:')
     Laplace(G_Email_connect,Email_2_list,0.5)
     print('cond:')
