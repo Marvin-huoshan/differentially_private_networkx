@@ -7,6 +7,7 @@ from scipy.optimize import root
 import pandas as pd
 import os
 import math
+import pickle
 from multiprocessing import Pool,Process
 
 def func1(name,file,break_point_low,break_point_high):
@@ -196,8 +197,8 @@ def polyfit(x,y,name):
     plot2 = plt.plot(x, yvals, 'r', label='polyfit values')
     # plt.gca().invert_xaxis()
     ax1.set_title('polyfitting of ' + name)
-    ax1.set_xlabel('x')
-    ax1.set_ylabel('degree')
+    ax1.set_xlabel('degree')
+    ax1.set_ylabel('frequency')
     ax1.legend(fontsize='large', loc='upper left')
     ax2 = plt.subplot(132)
     # plot10 = plt.plot(x,yvals10,'m',label='polyder10 values')
@@ -369,6 +370,8 @@ def Laplace(G,threshold,epsilon,name):
     :return: 
     '''
     key,value,df = part_degree(G,threshold)
+    keys = [a for b in key for a in b]
+    values = [a for b in value for a in b]
     high_degree = value.pop(0)
     high_keys = key.pop(0)
     high_df = df.pop(0)
@@ -379,13 +382,20 @@ def Laplace(G,threshold,epsilon,name):
     high_noise = list(map(lambda x: x[0] + x[1], zip(high_noise, noise)))
     high_noise = [round(i) for i in high_noise]
     degree_dis(high_degree,high_noise,name,'high',2)
+    noise_degree = []
+    noise_degree.extend(high_noise)
     for i in range(len(df)):
         L = df[i] / epsilon
         value_noise = value[i][:]
         noise = list(np.random.laplace(0, L, len(value_noise)))
         value_noise = list(map(lambda x: x[0] + x[1], zip(value_noise, noise)))
         value_noise = [round(i) for i in value_noise]
+        noise_degree.extend(value_noise)
         degree_dis(value[i][:],value_noise,name,i,epsilon)
+    savepath = 'pict' + '/' + name + '/'
+    with open(savepath+name+'.pk','wb') as file_to_write:
+        pickle.dump(noise_degree,file_to_write)
+
 
 def degree_dis(dis1,dis2,name,i,epsilon):
     '''
@@ -418,6 +428,32 @@ def degree_dis(dis1,dis2,name,i,epsilon):
         print(savepath + ' 目录已存在')
     plt.savefig(savepath + name + '-' + str(epsilon) + '-' +str(i) + '.png')
 
+def Chung_Lu(G,file,name):
+    '''
+    将加完噪的序列转化为Chung-Lu图
+    :param file:
+    :return:
+    '''
+    with open(file, 'rb') as file_to_read:
+        noise_degree = pickle.load(file_to_read)
+    G_dict = dict(sorted(nx.degree(G), key=lambda x: x[1], reverse=True))
+    G_key = list(G_dict.keys())
+    G_degree = list(G_dict.values())
+    length = len(noise_degree)
+    tmp = G_degree[length:]
+    noise_degree.extend(tmp)
+    W = sum(noise_degree)
+    n = nx.number_of_nodes(G)
+    a = np.zeros((n,n))
+    for i in range(n):
+        for j in range(i,n):
+            a[i][j] = (noise_degree[i] * noise_degree[j]) / W
+    a = a + a.T - np.diag(np.diag(a))
+    savepath = 'pict' + '/' + name + '/'
+    with open(savepath + name + '_p' + '.pk', 'wb') as file_to_write:
+        pickle.dump(noise_degree, file_to_write)
+
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     G_face = nx.read_edgelist('facebook_combined.txt')
@@ -443,7 +479,6 @@ if __name__ == '__main__':
     dblp_2_list = [313.7991089,261.51650795,213.78199945,164.17030151,116.28585535,71.89060541,36.40478825]
     #Laplace(G_face_connect,facebook_2,0.5,'face')
     #对度的值分布进行曲线拟合，获得二阶导数零点
-
     face_fre_2_list = [136.97061775,1.39124414e+02,1.44556869e+02,1.54340456e+02
                         ,1.63938463e+02,1.74479112e+02,1.85497373e+02
                        ,1.95817312e+02,2.14705827e+02,2.25365647e+02,365.82809708]
@@ -456,18 +491,11 @@ if __name__ == '__main__':
     dblp_fre_2_list = [36.40478825,4.27936997e+01,5.28347889e+01,6.65825318e+01
                         ,8.31533309e+01,1.01546545e+02,1.20666296e+02
                         ,1.38770070e+02,1.7000e+02,1.74729408e+02,213.78199945]
-    #Laplace(G_face_connect,face_fre_2_list,0.5,'face_1')
-    p = Pool(42)
-    for i in np.arange(0.5,5.5,0.5):
-        p.apply(Laplace,args=(G_face_connect,face_fre_2_list,i,'face_1'))
-        p.apply(Laplace,args=(G_Email_connect, Email_fre_2_list, i, 'Email_1'))
-        p.apply(Laplace,args=(G_cond_connect, cond_fre_2_list, i, 'cond_1'))
-        p.apply(Laplace,args=(G_dblp_connect, dblp_fre_2_list, i, 'dblp_1'))
+    p = Pool(4)
+    p.apply(Chung_Lu,args=(G_face_connect,'pict/face_1/face_1.pk','face_1'))
+    p.apply(Chung_Lu, args=(G_Email_connect, 'pict/Email_1/Email_1.pk', 'Email_1'))
+    p.apply(Chung_Lu, args=(G_cond_connect, 'pict/cond_1/cond_1.pk', 'cond_1'))
+    p.apply(Chung_Lu, args=(G_dblp_connect, 'pict/dblp_1/dblp_1.pk', 'dblp_1'))
     p.close()
     p.join()
-    '''print('Email:')
-    Laplace(G_Email_connect,Email_2_list,0.5)
-    print('cond:')
-    Laplace(G_cond_connect,cond_2_list,0.5)
-    print('dblp:')
-    Laplace(G_dblp_connect,dblp_2_list,0.5)'''
+
