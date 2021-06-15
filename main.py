@@ -453,6 +453,15 @@ def Chung_Lu(G,file,name):
     with open(savepath + name + '_p' + '.pk', 'wb') as file_to_write:
         pickle.dump(noise_degree, file_to_write)
 
+def noise_row_sum(file):
+    '''
+    将Chung-Lu图每个节点对应的元素按行相加
+    :param file:
+    :return:
+    '''
+    with open(file, 'rb') as file_to_read:
+        noise_matrix = pickle.load(file_to_read)
+        print(noise_matrix)
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -491,11 +500,5 @@ if __name__ == '__main__':
     dblp_fre_2_list = [36.40478825,4.27936997e+01,5.28347889e+01,6.65825318e+01
                         ,8.31533309e+01,1.01546545e+02,1.20666296e+02
                         ,1.38770070e+02,1.7000e+02,1.74729408e+02,213.78199945]
-    p = Pool(4)
-    p.apply(Chung_Lu,args=(G_face_connect,'pict/face_1/face_1.pk','face_1'))
-    p.apply(Chung_Lu, args=(G_Email_connect, 'pict/Email_1/Email_1.pk', 'Email_1'))
-    p.apply(Chung_Lu, args=(G_cond_connect, 'pict/cond_1/cond_1.pk', 'cond_1'))
-    p.apply(Chung_Lu, args=(G_dblp_connect, 'pict/dblp_1/dblp_1.pk', 'dblp_1'))
-    p.close()
-    p.join()
 
+    noise_row_sum('pict/face_1/face_1_p.pk')
