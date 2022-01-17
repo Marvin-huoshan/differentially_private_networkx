@@ -1,7 +1,12 @@
 import time
 
 import networkx as nx
+import numpy as np
+from scipy import sparse
+from tqdm import tqdm
+
 from main import connect_integers
+from pandas import *
 
 def domain_set(G):
     #求出图G的支配集
@@ -15,6 +20,22 @@ def is_domained(G, domain_set):
 def edge_betweenness_centrality(G, sources, targets):
     #求出原始边的介数中心性
     return nx.edge_betweenness_centrality_subset(G=G, sources=sources, targets=targets)
+
+def betweenness2matrix(dicts):
+    #将betweenness转为矩阵存储
+    betweenness_pair = list(dicts.keys())
+    length = len(betweenness_pair)
+    betweenness_value = list(dicts.values())
+    betweenness_matrix = np.zeros([length,length])
+    for i in tqdm(range(length)):
+        a = betweenness_pair[i][0]
+        b = betweenness_pair[i][1]
+        value = betweenness_value[i]
+        betweenness_matrix[a][b] = value
+    adj = sparse.lil_matrix(betweenness_matrix)
+    return adj
+
+
 
 if __name__ == '__main__':
     G_face = nx.read_edgelist('dataset/facebook_combined.txt')
@@ -36,23 +57,13 @@ if __name__ == '__main__':
     Email_isdomained = is_domained(G_Email_connect, Email_domain)
     cond_isdomained = is_domained(G_cond_connect, cond_domain)
     dblp_isdomained = is_domained(G_dblp_connect, dblp_domain)
-    time1 = time.time()
+    #求出原始图中支配集与被支配集之间连边的介数中心性
     face_edge_reconstruct = edge_betweenness_centrality(G_face_connect, face_domain, face_isdomained)
-    print(face_edge_reconstruct)
-    time2 = time.time()
-    print(time2 - time1)
-    time1 = time.time()
+    betweenness2matrix(face_edge_reconstruct)
+    exit(0)
     Email_edge_reconstruct = edge_betweenness_centrality(G_Email_connect, Email_domain, Email_isdomained)
     print(Email_edge_reconstruct)
-    time2 = time.time()
-    print(time2 - time1)
-    time1 = time.time()
     cond_edge_reconstruct = edge_betweenness_centrality(G_cond_connect, cond_domain, cond_isdomained)
     print(cond_edge_reconstruct)
-    time2 = time.time()
-    print(time2 - time1)
-    time1 = time.time()
     dblp_edge_reconstruct = edge_betweenness_centrality(G_dblp_connect, dblp_domain, dblp_isdomained)
     print(dblp_edge_reconstruct)
-    time2 = time.time()
-    print(time2 - time1)
