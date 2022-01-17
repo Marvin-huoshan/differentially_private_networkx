@@ -451,7 +451,7 @@ def Chung_Lu(G,file,name):
     a = a + a.T - np.diag(np.diag(a))
     savepath = 'pict' + '/' + name + '/'
     with open(savepath + name + '_p' + '.pk', 'wb') as file_to_write:
-        pickle.dump(noise_degree, file_to_write)
+        pickle.dump(a, file_to_write)
 
 def noise_row_sum(file):
     '''
@@ -463,6 +463,126 @@ def noise_row_sum(file):
         noise_matrix = pickle.load(file_to_read)
         print(noise_matrix)
 
+def degree_maintain(G,file):
+    '''
+    度最大节点保持百分比
+    :param G:
+    :param file:
+    :return:
+    '''
+    G_dict = dict(sorted(nx.degree(G), key=lambda x: x[1], reverse=True))
+    G_key = list(G_dict.keys())
+    G_degree = list(G_dict.values())
+    with open(file,'rb') as file_to_read:
+        noise_degree = pickle.load(file_to_read)
+    print(G_key)
+    print(G_degree)
+    print(noise_degree)
+
+def pict_degree_maintain():
+    '''
+    度最大节点保持百分比绘图
+    :param G:
+    :param file:
+    :return:
+    '''
+    from matplotlib.ticker import FuncFormatter
+    def to_percent(temp, position):
+        return '%1.0f' % (100 * temp) + '%'
+    x = [0.5,1,1.5,2,2.5,3,3.5,4,4.5,5]
+    y_face_1 = [0.928571429,0.952380952,0.976190476,0.976190476,0.976190476
+                ,0.976190476,0.976190476,0.976190476,0.976190476,1]
+    y_Email_1 = [0.985294118,0.991176471,0.991176471,0.997058824,0.997058824
+                ,0.997058824,0.997058824,0.997058824,0.997058824,0.997058824]
+    y_cond_1 = [0.940092166,0.976958525,0.98156682,0.98156682,0.99078341
+                ,0.995391705,0.995391705,0.995391705,0.995391705,0.995391705]
+    y_dblp_1 = [0.963517306,0.982538198,0.988462738,0.991580917,0.992828188
+                ,0.99407546,0.995946367,0.996881821,0.997505457,0.998129093]
+    y_face_5 = [0.985221675,0.995073892,0.995073892,0.995073892,0.995073892
+                ,0.995073892,0.995073892,0.995073892,0.995073892,0.995073892]
+    y_Email_5 = [0.997668998,0.997668998,0.997668998,0.997668998,0.997668998
+                ,0.997668998,0.997668998,1,1,1]
+    y_cond_5 = [0.997762864,0.997762864,0.997762864,0.997762864,0.997762864
+                ,0.997762864,0.997762864,0.997762864,0.997762864,0.997762864]
+    y_dblp_5 = [0.999834929,0.999834929,0.999834929,0.999834929,0.999834929
+                ,0.999834929,0.999834929,0.999834929,0.999834929,0.999834929]
+    plt.figure(figsize=(8, 8))
+    plot1 = plt.plot(x, y_face_1, 'b', label='facebook')
+    plot2 = plt.plot(x, y_Email_1, 'g', label='Email-Enron')
+    plot3 = plt.plot(x, y_cond_1, 'r', label='CA-condMat')
+    plot4 = plt.plot(x, y_dblp_1, 'y', label='dblp')
+    plt.xlabel('epsilon')
+    plt.ylabel('percentage')
+    plt.title('1% similarity')
+    plt.legend()
+    #my_y_ticks = np.arange(0.98,1,0.002)
+    #plt.yticks(my_y_ticks)
+    #plt.ylim(0.98,1)
+    plt.gca().yaxis.set_major_formatter(FuncFormatter(to_percent))
+    plt.show()
+
+def variance(G,threshold,epsilon,name):
+    '''
+    求出每个分组的标准差,根据标准差的激活值的大小,activation>0.95则需要进行处理
+    :return:
+    '''
+    import math
+    key, value, df = part_degree(G, threshold)
+    value_copy = value[:]
+    high_degree = value_copy.pop(0)
+    high_df = df.pop(0)
+    high_mean = np.mean(high_degree)
+    high_noise = [high_mean for i in high_degree]
+    L = high_df / 2
+    noise = list(np.random.laplace(0, L, len(high_degree)))
+    high_noise = list(map(lambda x: x[0] + x[1], zip(high_noise, noise)))
+    high_noise = [round(i) for i in high_noise]
+    noise_degree = []
+    noise_degree.append(high_noise)
+    value_noise = value[:]
+    print(value_noise)
+    value_noise.pop(0)
+    list_std = []
+    for i in range(len(value_noise)):
+        std = np.std(value_noise[i],ddof=1)
+        list_std.append(std)
+    std_max = np.max(list_std)
+    for i in range(len(value_noise)):
+        std = np.std(value_noise[i],ddof=1)
+        activation = 1/(1+math.exp(-std))
+        print('std:',std)
+        print('activation:',activation)
+        if activation > 0.95:
+            num = epsilon_Relu(std_max / std, 10)
+            print('num:',num)
+            tmp_epsilon = epsilon * num
+            print('epsilon:',tmp_epsilon)
+            L = df[i] / tmp_epsilon
+            noise = list(np.random.laplace(0, L, len(value_noise[i])))
+            value_noise[i] = list(map(lambda x: x[0] + x[1], zip(value_noise[i], noise)))
+            value_noise[i] = [round(j) for j in value_noise[i]]
+        noise_degree.append(value_noise[i])
+    savepath = 'pict' + '/'
+    with open(savepath + name  + '_group.pk', 'wb') as file_to_write:
+        pickle.dump(noise_degree, file_to_write)
+    print(noise_degree)
+
+def epsilon_Relu(num,max_value):
+    '''
+    对于标准差使用Relu函数判断epsilon的大小关系
+    :param num:
+    :param threshold:
+    :return:
+    '''
+    a = 0
+    threshold = 0
+    if num < threshold:
+        result = a * (num - threshold)
+    elif num < max_value:
+        result = np.sqrt(num)
+    else:
+        result = max_value
+    return result
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     G_face = nx.read_edgelist('facebook_combined.txt')
@@ -490,15 +610,18 @@ if __name__ == '__main__':
     #对度的值分布进行曲线拟合，获得二阶导数零点
     face_fre_2_list = [136.97061775,1.39124414e+02,1.44556869e+02,1.54340456e+02
                         ,1.63938463e+02,1.74479112e+02,1.85497373e+02
-                       ,1.95817312e+02,2.14705827e+02,2.25365647e+02,365.82809708]
+                       ,1.95817312e+02,2.14705827e+02,2.25365647e+02]
     Email_fre_2_list = [118.76636075,126.96598235,139.27290664,157.64662113
                         ,185.2763339,214.05093964,257.68695449
-                        ,294.09662417,409.45897402,468.50080861,890.19454368]
+                        ,294.09662417,409.45897402,468.50080861]
     cond_fre_2_list = [38.68998649,41.40127082,46.1536108,52.43562554
                        ,60.17928542,69.4313085,74.66892891
                        ,86.31875535,95.4288922,115.30925353,133.43065935]
     dblp_fre_2_list = [36.40478825,4.27936997e+01,5.28347889e+01,6.65825318e+01
                         ,8.31533309e+01,1.01546545e+02,1.20666296e+02
                         ,1.38770070e+02,1.7000e+02,1.74729408e+02,213.78199945]
-
-    noise_row_sum('pict/face_1/face_1_p.pk')
+    #degree_maintain(G_face_connect,'pict/face_1/face_1.pk')
+    variance(G_face_connect,face_fre_2_list,1,'face_noise')
+    variance(G_Email_connect, Email_fre_2_list, 1,'Email_noise')
+    variance(G_cond_connect, cond_fre_2_list, 1,'cond_noise')
+    variance(G_dblp_connect, dblp_fre_2_list, 1,'dblp_noise')
