@@ -4,7 +4,7 @@ import networkx as nx
 import numpy as np
 from scipy import sparse
 from tqdm import tqdm
-
+import pickle
 from main import connect_integers
 from pandas import *
 
@@ -21,7 +21,7 @@ def edge_betweenness_centrality(G, sources, targets):
     #求出原始边的介数中心性
     return nx.edge_betweenness_centrality_subset(G=G, sources=sources, targets=targets)
 
-def betweenness2matrix(dicts):
+def betweenness2matrix(dicts, name):
     #将betweenness转为矩阵存储
     betweenness_pair = list(dicts.keys())
     length = len(betweenness_pair)
@@ -33,6 +33,9 @@ def betweenness2matrix(dicts):
         value = betweenness_value[i]
         betweenness_matrix[a][b] = value
     adj = sparse.lil_matrix(betweenness_matrix)
+    savepath = 'pkfile' + '/'
+    with open(savepath + name + '.pk', 'wb') as file_to_write:
+        pickle.dump(adj, file_to_write)
     return adj
 
 
@@ -59,7 +62,7 @@ if __name__ == '__main__':
     dblp_isdomained = is_domained(G_dblp_connect, dblp_domain)
     #求出原始图中支配集与被支配集之间连边的介数中心性
     face_edge_reconstruct = edge_betweenness_centrality(G_face_connect, face_domain, face_isdomained)
-    betweenness2matrix(face_edge_reconstruct)
+    betweenness2matrix(face_edge_reconstruct, 'face_betweenness_matrix')
     exit(0)
     Email_edge_reconstruct = edge_betweenness_centrality(G_Email_connect, Email_domain, Email_isdomained)
     print(Email_edge_reconstruct)
