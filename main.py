@@ -531,6 +531,7 @@ def variance(G,threshold,epsilon,name):
     value_copy = value[:]
     high_degree = value_copy.pop(0)
     high_df = df.pop(0)
+    #使用high_degree的均值作为其度值
     high_mean = np.mean(high_degree)
     high_noise = [high_mean for i in high_degree]
     L = high_df / 2
